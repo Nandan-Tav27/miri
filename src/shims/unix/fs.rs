@@ -502,6 +502,15 @@ pub trait EvalContextExt<'tcx>: crate::MiriInterpCxExt<'tcx> {
             this.reject_in_isolation("`open`", reject_with)?;
             return this.set_errno_and_return_neg1_i32(ErrorKind::PermissionDenied);
         }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+
+            if !writable && path.is_dir() {
+                options.custom_flags(FILE_FLAG_BACKUP_SEMANTICS);
+            }
+        }
 
         let fd = options
             .open(path)
